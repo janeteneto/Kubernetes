@@ -41,3 +41,39 @@
 1. Open Docker --> Click Settings --> Kubernetes --> tick `enable Kubernetes` and `Show system containers` --> press Apply & restart
 
 2. Once Kubernetes fully starts, open a terminal and run `kubectl get svc`
+
+### Create a deployment for nginx
+
+1. We start bye creating a new yml file called `nginx-deployment.yml`. This can be located anywhere on your local user.
+
+2. Add the following script to it:
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 3
+  template:
+    metadata:
+      labels:
+       app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: janeteprofile/nginx:v1
+        ports:
+        - containerPort: 80
+  ````
+  
+  - Make sure to indent properly. Whenever you want to indent, just double click the space bar.
+  - This file gives the conf for the deployment using kubernetes
+
+3. On your terminal, on the same location as the nginx-deployment.yml, run `kubectl create -f nginx-deploy.yml`
+
+4. Then run `kubectl get deploy` to see the deployments and their state
+
+5. Run ` kubectl get pods` to see the pods created (they work like instances)
