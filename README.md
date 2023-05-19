@@ -77,3 +77,131 @@ spec:
 4. Then run `kubectl get deploy` to see the deployments and their state
 
 5. Run ` kubectl get pods` to see the pods created (they work like instances)
+
+### Create a deployment for node
+
+1. On the same directory, create a file named `node-deploy.yml` with the following script:
+
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-deployment
+spec:
+  selector:
+    matchLabels:
+      app: node
+  replicas: 3
+  template:
+    metadata:
+      labels:
+       app: node
+    spec:
+      containers:
+      - name: node
+        image: janeteneto/app:v1
+        ports:
+        - containerPort: 80
+        env:
+          - name: DB_HOST
+            value: mongodb://10.107.199.89:27017/posts
+        
+---
+
+apiVersion: v1
+kind: Service
+metadata: 
+  name: node-svc
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30002
+    port: 3000
+    targetPort: 3000
+  selector:
+    app: node
+  type: LoadBalancer
+  ````
+  
+- This script includes the deployment **and** the service for node.
+- The image should be the image of the container with the app
+-  The ip on **value** is Mongodb's ip. You can check the ip by running `kubectl get svc`
+  
+2. On the terminal where your file is, run `kubectl create -f node-deploy.yml` to create both the deployment and service
+
+3. Go to localhost:30002 and the app should be running
+
+### Create a deployment for mongoDB
+  
+1. Create a new file called `mongodb-pvc.yml` and add the following script:
+  ````
+  apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+````
+
+2. Then let's create the deployment and service in a file called `mongo-deploy.yml` with the following code:
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  replicas: 3
+  template:
+    metadata:
+      labels:
+       app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongodb
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+      volumes:
+      - name: mongodb-data
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+---
+
+apiVersion: v1
+kind: Service
+metadata: 
+  name: mongodb-svc
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30003
+    port: 27017
+    targetPort: 27017
+  selector:
+    app: mongodb
+  type: NodePort
+  ````
+  
+- This also attaches the `pvc`
+
+3. Run `kubectl create -f mongo-deploy.yml`
+
+4. Run `kubectl exec node_port_number -- env node seeds/seed.js`
+
+- After this, you should see a message on the terminal saying: 
+````
+Database Cleared
+Database Seeded
+````
+
+5. Go to localhosts:30002/posts and posts should be running!
